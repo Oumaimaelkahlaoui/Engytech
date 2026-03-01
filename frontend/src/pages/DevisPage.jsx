@@ -41,7 +41,7 @@ const DEVIS_ITEMS = [
     image: "/images/devis/inspection.jpg",
   },
   {
-    icon: "🔥",
+    icon: "",
     title: "Sécurité Incendie",
     desc: "Plans d'évacuation, détection, sprinklers et audit SSI complets.",
     link: "/devis/securite-incendie",
