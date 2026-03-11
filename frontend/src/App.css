@@ -1929,3 +1929,8 @@ cite span   { display: block; font-size: 0.75rem;  color: var(--dust); text-alig
 @media (max-width: 360px) {
   .devis-card { padding: 1.25rem 1rem; }
 }
+div.radio-group {
+  background: #f7f7f7;
+  padding: 10px;
+  border-radius: 8px;
+}

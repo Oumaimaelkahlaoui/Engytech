@@ -32,7 +32,7 @@ export default function AdminDashboard() {
     if (!filePath) return null;
     const { data, error } = await supabase.storage
       .from("documents-projects") // <== bucket name
-      .createSignedUrl(filePath, 60); // 60 secondes validité
+      .createSignedUrl(filePath, 3600); // 60 secondes validité
     if (error) {
       console.log(error);
       return null;
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
           <p><b>Téléphone:</b> {d.telephone}</p>
           <p><b>Type Projet:</b> {d.type_projet}</p>
           <p><b>Surface:</b> {d.surface} m²</p>
-
+           <p><b>Type Structuré:</b> {d.type_structure}</p>
           <div>
             <b>Documents:</b>
             {d.documents?.length === 0 && <p>Aucun fichier</p>}
@@ -82,14 +82,24 @@ function SignedFileLink({ file }) {
 
   useEffect(() => {
     async function fetchUrl() {
+
+      console.log("FILE PATH:", file.file_path)
+
       const { data, error } = await supabase.storage
         .from("documents-projects")
-        .createSignedUrl(file.file_path, 60); // 60 secondes validité
-      if (!error) setUrl(data.signedUrl);
-    }
-    fetchUrl();
-  }, [file.file_path]);
+        .createSignedUrl(file.file_path, 60);
 
+      if (error) {
+        console.log("SIGNED URL ERROR:", error)
+      } else {
+        console.log("SIGNED URL:", data.signedUrl)
+        setUrl(data.signedUrl)
+      }
+    }
+
+    fetchUrl()
+
+  }, [file.file_path])
   if (!url) return <span>Chargement...</span>;
 
   return (

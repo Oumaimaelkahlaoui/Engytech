@@ -8,10 +8,17 @@ export default function ClientForm() {
   const [typeProjet, setTypeProjet] = useState('')
   const [surface, setSurface] = useState('')
   const [files, setFiles] = useState([])
+  const [typeStructure, setTypeStructure] = useState('');
+  
+  // États pour le type de structure (radio buttons)
+  const [betonArme, setBetonArme] = useState(false)
+  const [charpenteMetalique, setCharpenteMetalique] = useState(false)
+  const [mixte, setMixte] = useState(false)
 
-  const handleFiles = (e) => 
+  const handleFiles = (e) => {
     console.log(e.target.files)
     setFiles([...e.target.files])
+  }
 
   async function uploadFile(file) {
     const { data, error } = await supabase.storage
@@ -27,32 +34,67 @@ export default function ClientForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     try {
-      // 1️⃣ Save info formulaire
+      // 1️⃣ Insert demande
       const { data: newDemande, error: insertError } = await supabase
         .from('demandes_devis')
-        .insert([{ nomcompelt, email, telephone, type_projet: typeProjet, surface }])
+        .insert([
+          { 
+            nomcompelt, 
+            email, 
+            telephone, 
+            type_projet: typeProjet, 
+            surface,
+            type_structure: typeStructure // <- ici
+
+          }
+        ])
         .select()
 
-      if (insertError) throw insertError
-
-      const demandeId = newDemande[0].id
-
-      // 2️⃣ Upload files and save paths
-      for (let file of files) {
-        const filePath = await uploadFile(file)
-        await supabase.from('documents').insert([
-          { demande_id: demandeId, file_name: file.name, file_path: filePath }
-        ])
+      if (insertError) {
+        console.log("INSERT DEMANDE ERROR:", insertError)
+        return
       }
 
-      alert('Devis envoyé avec succès !')
-      // reset form
-      setNomCompelt(''); setEmail(''); setTelephone(''); setTypeProjet(''); setSurface(''); setFiles([])
+      const demandeId = newDemande[0].id
+      console.log("DEMANDE ID:", demandeId)
 
-    } catch (error) {
-      console.error(error)
-      alert('Erreur lors de l\'envoi du devis')
+      // 2️⃣ Upload files
+      for (const file of files) {
+        const fileName = `${Date.now()}-${file.name}`
+
+        const { data, error } = await supabase.storage
+          .from("documents-projects")
+          .upload(`files/${fileName}`, file)
+
+        if (error) {
+          console.log("UPLOAD ERROR:", error)
+          continue
+        }
+
+        console.log("UPLOAD SUCCESS:", data.path)
+
+        // 3️⃣ Insert document
+        const { error: docError } = await supabase
+          .from("documents")
+          .insert({
+            demande_id: demandeId,
+            file_name: file.name,
+            file_path: `files/${fileName}`  
+          })
+
+        if (docError) {
+          console.log("INSERT DOCUMENT ERROR:", docError)
+        } else {
+          console.log("DOCUMENT SAVED")
+        }
+      }
+
+      alert("Devis envoyé avec succès !")
+
+    } catch (err) {
+      console.log("GLOBAL ERROR:", err)
     }
   }
 
@@ -63,9 +105,49 @@ export default function ClientForm() {
       <input value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" required />
       <input value={typeProjet} onChange={e => setTypeProjet(e.target.value)} placeholder="Type de projet" required />
       <input value={surface} onChange={e => setSurface(e.target.value)} placeholder="Surface" type="number" required />
+
+      {/* Radio buttons pour type de structure */}
+     <div style={{ margin: '15px 0' }}>
+  <p style={{ marginBottom: '5px', fontWeight: 'bold' }}>Type de structure :</p>
+  <label style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', cursor: 'pointer' }}>
+    <input
+      type="radio"
+      name="typeStructure"
+      value="béton armé"
+      checked={typeStructure === 'béton armé'}
+      onChange={e => setTypeStructure(e.target.value)}
+      style={{ marginRight: '5px' }}
+    />
+    Béton armé
+  </label>
+
+  <label style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', cursor: 'pointer' }}>
+    <input
+      type="radio"
+      name="typeStructure"
+      value="charpente métallique"
+      checked={typeStructure === 'charpente métallique'}
+      onChange={e => setTypeStructure(e.target.value)}
+      style={{ marginRight: '5px' }}
+    />
+    Charpente métallique
+  </label>
+
+  <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+    <input
+      type="radio"
+      name="typeStructure"
+      value="mixte"
+      checked={typeStructure === 'mixte'}
+      onChange={e => setTypeStructure(e.target.value)}
+      style={{ marginRight: '5px' }}
+    />
+    Mixte
+  </label>
+</div> 
+
       <input type="file" multiple onChange={handleFiles} />
       <button type="submit">Envoyer Devis</button>
     </form>
   )
 }
-
